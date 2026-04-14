@@ -5,14 +5,17 @@ This project is a starting point for your **Project 1** WebXR experience. It imp
 ## What the Scene Demonstrates
 
 - **WebXR immersive-AR session** created with `scene.createDefaultXRExperienceAsync`.
-- A **floating AR arrow** that visually points toward a chosen destination.
+- A **floating AR arrow** that points to the active route.
 - Simple **"sign" meshes** representing key locations in a small campus-like area:
-  - Elevator
-  - Classroom
-  - Exit
+  - Elevator (left route)
+  - Classroom (right route)
+  - Exit (forward route)
+- Animated **route waypoint markers** so users can follow a clear path instead of one static object.
 - A minimal, accessible **on-screen UI** to:
   - Choose a destination (`Elevator`, `Classroom`, `Exit`)
-  - Toggle **Audio On/Off** (logic is wired; you can later attach real audio clips).
+  - Toggle **Audio On/Off** (browser speech synthesis guidance).
+- A **status panel** that reports XR/device state and distance updates.
+- Basic **error handling** for unsupported browsers/devices and AR session startup failures.
 
 This serves as a **proof-of-concept**: users would move around a small physical area and see AR cues that help them orient and navigate, rather than looking down at a flat map.
 
@@ -33,12 +36,12 @@ This serves as a **proof-of-concept**: users would move around a small physical 
 
 4. Use the bottom UI:
    - Tap **Elevator / Classroom / Exit** to change the active destination.
-   - Tap **Audio: On/Off** to toggle (you can later attach actual audio navigation prompts here).
+   - Tap **Audio: On/Off** to hear spoken guidance and distance estimates.
 
 ## Next Steps for Project 1
 
 - Replace the placeholder positions with measurements that better match a **real building or small campus area**.
-- Add **audio clips** (Babylon `Sound` objects or HTML5 Audio) for spoken instructions.
+- Replace speech synthesis with recorded **audio clips** if you want consistent voice prompts.
 - Enhance accessibility:
   - High-contrast materials
   - Larger meshes for easier visibility

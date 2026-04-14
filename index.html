@@ -39,6 +39,83 @@
             z-index: 10;
         }
 
+        #status-panel {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            max-width: min(92vw, 360px);
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 0.75rem;
+            padding: 0.65rem 0.8rem;
+            z-index: 11;
+            font-size: 0.88rem;
+            line-height: 1.35;
+        }
+
+        #status-title {
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+        }
+
+        #status-text {
+            opacity: 0.92;
+        }
+
+        #mini-map {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 190px;
+            height: 190px;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.62);
+            backdrop-filter: blur(10px);
+            z-index: 11;
+            overflow: hidden;
+        }
+
+        #mini-map svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .map-label {
+            fill: rgba(255, 255, 255, 0.88);
+            font-size: 8px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .map-road {
+            stroke: #9aa4b4;
+            stroke-width: 7;
+            stroke-linecap: round;
+            fill: none;
+            opacity: 0.95;
+        }
+
+        .map-lane {
+            stroke: #d8dde7;
+            stroke-width: 1.2;
+            stroke-dasharray: 2.3 2.3;
+            fill: none;
+            opacity: 0.6;
+        }
+
+        .map-building {
+            fill: #0a5eaa;
+            stroke: #98d0ff;
+            stroke-width: 0.55;
+        }
+
+        .map-lot {
+            fill: #7d848f;
+            stroke: #c7ced8;
+            stroke-width: 0.4;
+        }
+
         #ui button {
             border: none;
             border-radius: 999px;
@@ -67,10 +144,67 @@
 <body>
     <canvas id="renderCanvas" touch-action="none"></canvas>
 
+    <section id="status-panel" aria-live="polite">
+        <div id="status-title">Campus Navigation AR</div>
+        <div id="status-text">Checking XR support...</div>
+    </section>
+
+    <aside id="mini-map" aria-label="Route mini map">
+        <svg viewBox="0 0 100 100" role="img">
+            <defs>
+                <linearGradient id="mapBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#bccba5" />
+                    <stop offset="100%" stop-color="#a5b893" />
+                </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="96" height="96" rx="8" fill="url(#mapBg)" />
+
+            <!-- Main roads -->
+            <path class="map-road" d="M8 73 L93 73" />
+            <path class="map-road" d="M10 38 L90 38" />
+            <path class="map-road" d="M24 10 L24 92" />
+            <path class="map-road" d="M72 8 L72 92" />
+            <path class="map-road" d="M36 20 L64 48 L86 48" />
+
+            <!-- Lane separators -->
+            <path class="map-lane" d="M8 73 L93 73" />
+            <path class="map-lane" d="M10 38 L90 38" />
+            <path class="map-lane" d="M24 10 L24 92" />
+            <path class="map-lane" d="M72 8 L72 92" />
+            <path class="map-lane" d="M36 20 L64 48 L86 48" />
+
+            <!-- Building blocks inspired by campus map proportions -->
+            <rect class="map-building" x="28" y="51" width="11" height="18" rx="1.5" />
+            <rect class="map-building" x="43" y="49" width="13" height="22" rx="1.5" />
+            <rect class="map-building" x="58" y="52" width="10" height="18" rx="1.5" />
+            <rect class="map-building" x="40" y="27" width="12" height="12" rx="1.5" />
+            <rect class="map-building" x="55" y="24" width="10" height="11" rx="1.5" />
+            <rect class="map-building" x="27" y="24" width="10" height="12" rx="1.5" />
+            <rect class="map-building" x="73.5" y="51" width="14.5" height="16" rx="1.5" />
+
+            <!-- Parking / lots -->
+            <rect class="map-lot" x="6" y="47" width="16" height="20" rx="1.3" />
+            <rect class="map-lot" x="74" y="14" width="18" height="19" rx="1.3" />
+            <rect class="map-lot" x="6" y="16" width="14" height="15" rx="1.3" />
+
+            <text class="map-label" x="6" y="11">Campus Map</text>
+            <text class="map-label" x="43" y="61">Core</text>
+            <text class="map-label" x="77" y="60">Field</text>
+            <text class="map-label" x="76" y="26">Class</text>
+
+            <!-- Dynamic route and points -->
+            <polyline id="map-path" points="50,74 50,52 50,30 50,20" fill="none" stroke="#32cd32" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+            <circle id="map-user" cx="50" cy="74" r="3.3" fill="#ffffff" stroke="#0f1a27" stroke-width="0.9" />
+            <circle id="map-target" cx="50" cy="20" r="3.4" fill="#32cd32" stroke="#0f1a27" stroke-width="0.9" />
+        </svg>
+    </aside>
+
     <div id="ui" aria-label="AR navigation controls">
-        <button type="button" data-destination="elevator">Elevator</button>
-        <button type="button" data-destination="classroom">Classroom</button>
-        <button type="button" data-destination="exit">Exit</button>
+        <button type="button" data-destination="buildingA">Building A</button>
+        <button type="button" data-destination="buildingH">Building H</button>
+        <button type="button" data-destination="buildingJ">Building J</button>
+        <button type="button" data-destination="buildingM">Building M</button>
+        <button type="button" data-destination="buildingN">Building N</button>
         <button type="button" id="audio-toggle" aria-pressed="false">Audio: Off</button>
     </div>
 </body>
