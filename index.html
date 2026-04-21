@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WebXR campus AR navigation demo with route markers, mini map, and optional voice guidance.">
+    <meta name="theme-color" content="#0a1628">
     <title>Campus AR Navigation | Assignment 2</title>
     <style>
         html,
@@ -135,6 +137,66 @@
         #ui button.active {
             background: #32cd32;
         }
+
+        #ui button:focus-visible {
+            outline: 2px solid #ffffff;
+            outline-offset: 2px;
+        }
+
+        #ui button.secondary {
+            background: rgba(255, 255, 255, 0.12);
+            color: #e8eef7;
+        }
+
+        #ui button.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #hint-bar {
+            position: fixed;
+            left: 50%;
+            top: 1rem;
+            transform: translateX(-50%);
+            max-width: min(92vw, 520px);
+            padding: 0.55rem 0.85rem;
+            border-radius: 0.65rem;
+            background: rgba(10, 22, 40, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(12px);
+            z-index: 9;
+            font-size: 0.82rem;
+            line-height: 1.4;
+            color: #e8eef7;
+            text-align: center;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        }
+
+        #hint-bar kbd {
+            font-size: 0.75em;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.25rem;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 640px) {
+            #hint-bar {
+                top: auto;
+                bottom: 5.5rem;
+            }
+        }
     </style>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -142,7 +204,12 @@
     <script src="js/ar-campus.js" defer></script>
 </head>
 <body>
-    <canvas id="renderCanvas" touch-action="none"></canvas>
+    <canvas id="renderCanvas" touch-action="none" aria-label="3D and AR scene"></canvas>
+
+    <p id="hint-bar" role="note">
+        Drag to orbit the campus preview. On a supported phone, use <strong>Enter AR</strong>, then walk toward the
+        glowing waypoints. Pick a building below; toggle audio for spoken directions.
+    </p>
 
     <section id="status-panel" aria-live="polite">
         <div id="status-title">Campus Navigation AR</div>
@@ -205,7 +272,9 @@
         <button type="button" data-destination="buildingJ">Building J</button>
         <button type="button" data-destination="buildingM">Building M</button>
         <button type="button" data-destination="buildingN">Building N</button>
-        <button type="button" id="audio-toggle" aria-pressed="false">Audio: Off</button>
+        <button type="button" id="hint-dismiss" class="secondary">Hide tips</button>
+        <button type="button" id="audio-toggle" class="secondary" aria-pressed="false" aria-describedby="audio-toggle-desc">Audio: Off</button>
     </div>
+    <span class="sr-only" id="audio-toggle-desc">Toggles speech synthesis for navigation prompts</span>
 </body>
 </html>

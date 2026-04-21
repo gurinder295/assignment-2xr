@@ -2,6 +2,8 @@ const canvas = document.getElementById("renderCanvas");
 const statusText = document.getElementById("status-text");
 const uiRoot = document.getElementById("ui");
 const audioToggleButton = document.getElementById("audio-toggle");
+const hintBar = document.getElementById("hint-bar");
+const hintDismissButton = document.getElementById("hint-dismiss");
 const mapPath = document.getElementById("map-path");
 const mapTarget = document.getElementById("map-target");
 
@@ -22,6 +24,13 @@ function speakInstruction(message) {
     window.speechSynthesis.speak(utterance);
 }
 
+if (hintDismissButton && hintBar) {
+    hintDismissButton.addEventListener("click", () => {
+        hintBar.hidden = true;
+        hintDismissButton.hidden = true;
+    });
+}
+
 function createScene() {
     const scene = new BABYLON.Scene(engine);
 
@@ -36,9 +45,17 @@ function createScene() {
     );
     camera.attachControl(canvas, true);
 
-    const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-    light.intensity = 0.9;
-    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+    const hemi = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0.25, 1, 0.35), scene);
+    hemi.intensity = 0.82;
+    hemi.groundColor = new BABYLON.Color3(0.2, 0.22, 0.28);
+
+    const sun = new BABYLON.DirectionalLight("sun", new BABYLON.Vector3(-0.4, -1, -0.25), scene);
+    sun.position = new BABYLON.Vector3(6, 10, 4);
+    sun.intensity = 0.45;
+
+    scene.clearColor = new BABYLON.Color4(0.06, 0.09, 0.14, 1);
+    scene.imageProcessingConfiguration.contrast = 1.06;
+    scene.imageProcessingConfiguration.exposure = 1.02;
 
     // Campus base model inspired by the Georgian map layout.
     const spreadScale = 1.35;
@@ -61,6 +78,11 @@ function createScene() {
     const roadMat = new BABYLON.StandardMaterial("roadMat", scene);
     roadMat.diffuseColor = new BABYLON.Color3(0.58, 0.61, 0.66);
     roadMat.specularColor = BABYLON.Color3.Black();
+
+    const roadLineMat = new BABYLON.StandardMaterial("roadLineMat", scene);
+    roadLineMat.diffuseColor = new BABYLON.Color3(0.92, 0.93, 0.96);
+    roadLineMat.emissiveColor = new BABYLON.Color3(0.35, 0.36, 0.38);
+    roadLineMat.specularColor = BABYLON.Color3.Black();
 
     const buildingMat = new BABYLON.StandardMaterial("buildingMat", scene);
     buildingMat.diffuseColor = new BABYLON.Color3(0.08, 0.36, 0.63);
@@ -112,6 +134,18 @@ function createScene() {
     createPad("road-vertical-east", 0.4, 3.55, 0.015, roadMat, 1.15, -0.1);
     createPad("road-diagonal", 1.55, 0.4, 0.015, roadMat, 0.38, 0.68).rotation.y = Math.PI / 4.5;
 
+    function addRoadDashLine(count, spacing, x, zStart, zStep, width, depth) {
+        for (let i = 0; i < count; i += 1) {
+            const dash = BABYLON.MeshBuilder.CreateBox(`road-dash-${x}-${i}`, { width, height: 0.008, depth }, scene);
+            dash.parent = campusRoot;
+            dash.position = new BABYLON.Vector3(x, 0.028, zStart + i * spacing * zStep);
+            dash.material = roadLineMat;
+        }
+    }
+
+    addRoadDashLine(9, 0.22, 1, -2.35, 1, 0.06, 0.1);
+    addRoadDashLine(8, 0.24, -0.85, -2.2, 1, 0.06, 0.1);
+
     // Main buildings
     createPad("building-a", 0.55, 0.95, 0.12, buildingMat, 0.55, -0.85);
     createPad("building-j", 0.72, 1.05, 0.12, buildingMat, 0.02, -0.86);
@@ -146,6 +180,9 @@ function createScene() {
     // A few tree markers to make the model feel less abstract.
     const treeMat = new BABYLON.StandardMaterial("treeMat", scene);
     treeMat.diffuseColor = new BABYLON.Color3(0.25, 0.62, 0.28);
+    const trunkMat = new BABYLON.StandardMaterial("trunkMat", scene);
+    trunkMat.diffuseColor = new BABYLON.Color3(0.35, 0.24, 0.16);
+    trunkMat.specularColor = BABYLON.Color3.Black();
     [
         new BABYLON.Vector3(-2.18, 0.04, 1.45),
         new BABYLON.Vector3(-1.88, 0.04, 1.52),
@@ -153,9 +190,14 @@ function createScene() {
         new BABYLON.Vector3(2.05, 0.04, 1.58),
         new BABYLON.Vector3(2.2, 0.04, -1.2),
     ].forEach((pos, idx) => {
-        const tree = BABYLON.MeshBuilder.CreateSphere(`tree-${idx}`, { diameter: 0.12 }, scene);
+        const trunk = BABYLON.MeshBuilder.CreateCylinder(`tree-trunk-${idx}`, { height: 0.16, diameter: 0.05 }, scene);
+        trunk.parent = campusRoot;
+        trunk.position = new BABYLON.Vector3(pos.x, 0.09, pos.z);
+        trunk.material = trunkMat;
+
+        const tree = BABYLON.MeshBuilder.CreateSphere(`tree-${idx}`, { diameter: 0.14 }, scene);
         tree.parent = campusRoot;
-        tree.position = pos;
+        tree.position = new BABYLON.Vector3(pos.x, 0.2, pos.z);
         tree.material = treeMat;
     });
 
@@ -173,12 +215,23 @@ function createScene() {
     arrowHead.position.z = 0.36;
 
     const arrow = BABYLON.Mesh.MergeMeshes([arrowBody, arrowHead], true, undefined, undefined, undefined, true);
-    arrow.position = new BABYLON.Vector3(0, 0.45, 1.45);
     arrow.rotationQuaternion = null;
-
     const arrowMat = new BABYLON.StandardMaterial("arrowMat", scene);
+    arrowMat.diffuseColor = BABYLON.Color3.Black();
+    arrowMat.specularColor = BABYLON.Color3.Black();
     arrowMat.emissiveColor = new BABYLON.Color3(0.15, 0.8, 1.0);
     arrow.material = arrowMat;
+
+    const arrowRing = BABYLON.MeshBuilder.CreateTorus("arrowRing", { diameter: 0.55, thickness: 0.02, tessellation: 28 }, scene);
+    arrowRing.rotation.x = Math.PI / 2;
+    arrowRing.position.y = -0.06;
+    arrowRing.parent = arrow;
+    const ringMat = new BABYLON.StandardMaterial("arrowRingMat", scene);
+    ringMat.diffuseColor = BABYLON.Color3.Black();
+    ringMat.specularColor = BABYLON.Color3.Black();
+    ringMat.emissiveColor = new BABYLON.Color3(0.2, 0.55, 0.95);
+    ringMat.alpha = 0.55;
+    arrowRing.material = ringMat;
 
     function createSign(name, label, labelColor, position) {
         const sign = BABYLON.MeshBuilder.CreatePlane(name, { width: 0.5, height: 0.28 }, scene);
@@ -296,9 +349,41 @@ function createScene() {
     });
 
     let activeDestinationKey = "buildingA";
+    let routeLegIndex = 0;
+    let routeLegCooldownUntil = 0;
     let audioEnabled = false;
     let lastDistanceAnnouncement = "";
     let destinationCompleted = false;
+
+    function getNavigationLookTarget(key) {
+        const destination = destinations[key];
+        if (!destination) return null;
+        if (routeLegIndex < destination.route.length) {
+            return destination.route[routeLegIndex];
+        }
+        return destination.signPosition;
+    }
+
+    function updateHudArrowFromCamera() {
+        const activeCam = scene.activeCamera;
+        if (!activeCam || typeof activeCam.getForwardRay !== "function") return;
+
+        const forwardRay = activeCam.getForwardRay(1.25);
+        const hudDistance = 1.12;
+        const hud = forwardRay.origin.add(forwardRay.direction.scale(hudDistance));
+        arrow.position.copyFrom(hud);
+
+        const lookTarget = getNavigationLookTarget(activeDestinationKey);
+        if (!lookTarget) return;
+
+        const flat = lookTarget.subtract(arrow.position);
+        flat.y = 0;
+        if (flat.lengthSquared() < 1e-5) return;
+
+        const yaw = Math.atan2(flat.x, flat.z);
+        arrow.rotationQuaternion = null;
+        arrow.rotation = new BABYLON.Vector3(0, yaw, 0);
+    }
 
     function toMiniMapPoint(vector) {
         // Keeps the small map centered around the user start area.
@@ -346,11 +431,11 @@ function createScene() {
         const destination = destinations[key];
         if (!destination) return;
 
-        const targetPoint = destination.route[0] || destination.signPosition;
-        const direction = targetPoint.subtract(arrow.position);
-        const yaw = Math.atan2(direction.x, direction.z);
-        arrow.rotation = new BABYLON.Vector3(0, yaw, 0);
-        arrow.material.emissiveColor = destination.color;
+        arrow.material.emissiveColor.copyFrom(destination.color);
+        if (arrowRing && arrowRing.material && arrowRing.material.emissiveColor) {
+            arrowRing.material.emissiveColor.copyFrom(destination.color);
+            arrowRing.material.emissiveColor.scaleInPlace(0.55);
+        }
 
         setRouteVisibility(key);
         setStatus(`Destination: ${destination.label}. Preparing AR guidance...`);
@@ -372,6 +457,8 @@ function createScene() {
     function selectDestination(key, forceSpeak) {
         if (!destinations[key]) return;
         activeDestinationKey = key;
+        routeLegIndex = 0;
+        routeLegCooldownUntil = 0;
         destinationCompleted = false;
         lastDistanceAnnouncement = "";
         aimArrowAtDestination(key);
@@ -406,10 +493,40 @@ function createScene() {
     );
 
     scene.onBeforeRenderObservable.add(() => {
+        updateHudArrowFromCamera();
+
         if (destinationCompleted) return;
 
+        const activeCam = scene.activeCamera;
+        const from =
+            activeCam && activeCam.globalPosition ? activeCam.globalPosition.clone() : camera.position.clone();
+
+        const legThreshold = 0.42 * spreadScale;
+        const activeDestination = destinations[activeDestinationKey];
+        const navTarget = getNavigationLookTarget(activeDestinationKey);
+        const now = performance.now();
+        if (
+            navTarget &&
+            routeLegIndex < activeDestination.route.length &&
+            now >= routeLegCooldownUntil &&
+            BABYLON.Vector3.Distance(from, navTarget) < legThreshold
+        ) {
+            routeLegIndex += 1;
+            routeLegCooldownUntil = now + 700;
+        }
+
         routeMarkers[activeDestinationKey].forEach((marker, index) => {
-            marker.position.y = 0.35 + Math.sin(performance.now() * 0.003 + index * 0.4) * 0.04;
+            const isCurrent = index === routeLegIndex;
+            const bob = Math.sin(performance.now() * 0.003 + index * 0.4) * (isCurrent ? 0.055 : 0.03);
+            marker.position.y = 0.35 + bob;
+            const scale = isCurrent ? 1.35 : 0.88;
+            marker.scaling.setAll(scale);
+            if (marker.material && marker.material.emissiveColor) {
+                marker.material.emissiveColor.copyFrom(activeDestination.color);
+                if (!isCurrent) {
+                    marker.material.emissiveColor.scaleInPlace(0.55);
+                }
+            }
         });
 
         const meters = Math.max(1, Math.round(getDistanceToDestination(activeDestinationKey)));
@@ -420,7 +537,10 @@ function createScene() {
         if (exactDistance <= 0.7 * spreadScale) {
             destinationCompleted = true;
             setStatus(`You have arrived at the ${destinations[activeDestinationKey].label}.`);
-            arrow.material.emissiveColor = new BABYLON.Color3(0.3, 1, 0.3);
+            arrow.material.emissiveColor.copyFrom(new BABYLON.Color3(0.3, 1, 0.3));
+            if (arrowRing && arrowRing.material && arrowRing.material.emissiveColor) {
+                arrowRing.material.emissiveColor.copyFrom(new BABYLON.Color3(0.2, 1, 0.35));
+            }
 
             routeMarkers[activeDestinationKey].forEach((marker) => {
                 marker.isVisible = false;
@@ -500,15 +620,18 @@ async function initializeXR(scene) {
         xr.baseExperience.onStateChangedObservable.add((state) => {
             switch (state) {
                 case BABYLON.WebXRState.ENTERING_XR:
+                    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
                     setStatus("Entering AR session...");
                     break;
                 case BABYLON.WebXRState.IN_XR:
+                    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
                     setStatus("AR active. Follow the arrow and route markers.");
                     break;
                 case BABYLON.WebXRState.EXITING_XR:
                     setStatus("Exiting AR session...");
                     break;
                 case BABYLON.WebXRState.NOT_IN_XR:
+                    scene.clearColor = new BABYLON.Color4(0.06, 0.09, 0.14, 1);
                     setStatus("AR session ended. Re-enter AR when ready.");
                     break;
                 default:
@@ -538,4 +661,3 @@ engine.runRenderLoop(() => {
 window.addEventListener("resize", () => {
     engine.resize();
 });
-
